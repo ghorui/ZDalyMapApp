@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Map Application</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Page Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type="text/css">
+        html {
+            height: 100%;
+        }
+
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0
+        }
+
+        #mapDiv {
+            height: 100%;
+        }
+    </style>
+    <script type="text/javascript"
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDcVhdDo4P0FPCHawgoqXivDqF8pa4UOvw">
+        </script>
+
+</head>
+
+<body>
+    <div id="mapDiv"></div>
+
+    <script type="text/javascript">
+        var map;
+        function initialize() {
+            var mapOptions = {
+                center: new google.maps.LatLng(21.7170325,73.9506225),
+                zoom: 2,
+                disableDefaultUI: true,
+                zoomControl: true,
+                panControl: true,
+                scaleControl: true,
+                streetViewControl: true,
+                rotateControl: true,
+                overviewMapControl: true
+            }
+            var initialCenter = mapOptions.center;
+            var intialZoom = mapOptions.zoom;
+            map = new google.maps.Map(document.getElementById("mapDiv"), mapOptions);
+            AddGotoInitialExtent(map, initialCenter, intialZoom);
+
+            // Initialize JSONP request
+            var script = document.createElement('script');
+            var url = ['https://www.googleapis.com/fusiontables/v1/query?'];
+            url.push('sql=');
+            var query = 'SELECT name, kml_4326 FROM ' +
+                '1foc3xO9DyfSIF6ofvN0kp2bxSfSeKog5FbdWdQ';
+            var encodedQuery = encodeURIComponent(query);
+            url.push(encodedQuery);
+            url.push('&callback=drawMap');
+            url.push('&key=AIzaSyAm9yWCV7JPCTHCJut8whOjARd7pwROFDQ');
+            script.src = url.join('');
+            var body = document.getElementsByTagName('body')[0];
+            body.appendChild(script);
+        };
+
+        function drawMap(data) {
+            var rows = data['rows'];
+            for (var i in rows) {
+                if (rows[i][0] != 'Antarctica') {
+                    var newCoordinates = [];
+                    var geometries = rows[i][1]['geometries'];
+                    if (geometries) {
+                        for (var j in geometries) {
+                            newCoordinates.push(constructNewCoordinates(geometries[j]));
+                        }
+                    } else {
+                        newCoordinates = constructNewCoordinates(rows[i][1]['geometry']);
+                    }
+                    var country = new google.maps.Polygon({
+                        paths: newCoordinates,
+                        strokeColor: '#ff9900',
+                        strokeOpacity: 1,
+                        strokeWeight: 0.3,
+                        fillColor: '#ffff66',
+                        fillOpacity: 0,
+                        name: rows[i][0]
+                    });
+                    
+                    google.maps.event.addListener(country, 'mouseover', function () {
+                        this.setOptions({ fillOpacity: 0.4 });
+
+                    });
+                    google.maps.event.addListener(country, 'mouseout', function () {
+                        this.setOptions({ fillOpacity: 0 });
+                    });
+                    google.maps.event.addListener(country, 'click', function () {
+
+                        window.alert(this.name);
+                    });
+
+                    country.setMap(map);
+                }
+            }
+        }
+
+        function constructNewCoordinates(polygon) {
+            var newCoordinates = [];
+            var coordinates = polygon['coordinates'][0];
+            for (var i in coordinates) {
+                newCoordinates.push(
+                    new google.maps.LatLng(coordinates[i][1], coordinates[i][0]));
+            }
+            return newCoordinates;
+        }
+        function AddGotoInitialExtent(map, initialCenter, intialZoom) {
+            google.maps.event.addListener(map, 'rightclick', function () {
+                map.setCenter(initialCenter);
+                map.setZoom(intialZoom);
+            });
+        }
+        google.maps.event.addDomListener(window, "load", initialize);
+        google.maps.event.addDomListener(mapDiv, 'click', function (marker) {
+            //   window.alert('Map was clicked!');
+            //   window.alert(marker);
+        });
+
+    </script>
+</body>
+
+</html>
